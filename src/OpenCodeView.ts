@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { OPENCODE_VIEW_TYPE } from "./types";
+import { OPENCODE_ICON_NAME } from "./icons";
 import type OpenCodePlugin from "./main";
 import { ProcessState } from "./ProcessManager";
 
@@ -22,7 +23,7 @@ export class OpenCodeView extends ItemView {
   }
 
   getIcon(): string {
-    return "terminal";
+    return OPENCODE_ICON_NAME;
   }
 
   async onOpen(): Promise<void> {
@@ -120,7 +121,7 @@ export class OpenCodeView extends ItemView {
 
     const titleSection = headerEl.createDiv({ cls: "opencode-header-title" });
     const iconEl = titleSection.createSpan();
-    setIcon(iconEl, "terminal");
+    setIcon(iconEl, OPENCODE_ICON_NAME);
     titleSection.createSpan({ text: "OpenCode" });
 
     const actionsEl = headerEl.createDiv({ cls: "opencode-header-actions" });

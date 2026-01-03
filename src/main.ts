@@ -3,6 +3,7 @@ import { OpenCodeSettings, DEFAULT_SETTINGS, OPENCODE_VIEW_TYPE } from "./types"
 import { OpenCodeView } from "./OpenCodeView";
 import { OpenCodeSettingTab } from "./SettingsTab";
 import { ProcessManager, ProcessState } from "./ProcessManager";
+import { registerOpenCodeIcons, OPENCODE_ICON_NAME } from "./icons";
 
 export default class OpenCodePlugin extends Plugin {
   settings: OpenCodeSettings = DEFAULT_SETTINGS;
@@ -11,6 +12,9 @@ export default class OpenCodePlugin extends Plugin {
 
   async onload(): Promise<void> {
     console.log("Loading OpenCode plugin");
+
+    // Register custom icons
+    registerOpenCodeIcons();
 
     await this.loadSettings();
 
@@ -33,7 +37,7 @@ export default class OpenCodePlugin extends Plugin {
     this.registerView(OPENCODE_VIEW_TYPE, (leaf) => new OpenCodeView(leaf, this));
 
     // Add ribbon icon
-    this.addRibbonIcon("terminal", "OpenCode", () => {
+    this.addRibbonIcon(OPENCODE_ICON_NAME, "OpenCode", () => {
       this.activateView();
     });
 

@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => OpenCodePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/types.ts
 var DEFAULT_SETTINGS = {
@@ -40,8 +40,21 @@ var DEFAULT_SETTINGS = {
 var OPENCODE_VIEW_TYPE = "opencode-view";
 
 // src/OpenCodeView.ts
+var import_obsidian2 = require("obsidian");
+
+// src/icons.ts
 var import_obsidian = require("obsidian");
-var OpenCodeView = class extends import_obsidian.ItemView {
+var OPENCODE_ICON_NAME = "opencode-logo";
+var OPENCODE_LOGO_SVG = `<svg viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18 24H6V12H18V24Z" fill="currentColor" opacity="0.4"/>
+  <path d="M18 6H6V24H18V6ZM24 30H0V0H24V30Z" fill="currentColor"/>
+</svg>`;
+function registerOpenCodeIcons() {
+  (0, import_obsidian.addIcon)(OPENCODE_ICON_NAME, OPENCODE_LOGO_SVG);
+}
+
+// src/OpenCodeView.ts
+var OpenCodeView = class extends import_obsidian2.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.iframeEl = null;
@@ -55,7 +68,7 @@ var OpenCodeView = class extends import_obsidian.ItemView {
     return "OpenCode";
   }
   getIcon() {
-    return "terminal";
+    return OPENCODE_ICON_NAME;
   }
   async onOpen() {
     this.contentEl.empty();
@@ -98,7 +111,7 @@ var OpenCodeView = class extends import_obsidian.ItemView {
       cls: "opencode-status-container"
     });
     const iconEl = statusContainer.createDiv({ cls: "opencode-status-icon" });
-    (0, import_obsidian.setIcon)(iconEl, "power-off");
+    (0, import_obsidian2.setIcon)(iconEl, "power-off");
     statusContainer.createEl("h3", { text: "OpenCode is stopped" });
     statusContainer.createEl("p", {
       text: "Click the button below to start the OpenCode server.",
@@ -130,27 +143,27 @@ var OpenCodeView = class extends import_obsidian.ItemView {
     const headerEl = this.contentEl.createDiv({ cls: "opencode-header" });
     const titleSection = headerEl.createDiv({ cls: "opencode-header-title" });
     const iconEl = titleSection.createSpan();
-    (0, import_obsidian.setIcon)(iconEl, "terminal");
+    (0, import_obsidian2.setIcon)(iconEl, OPENCODE_ICON_NAME);
     titleSection.createSpan({ text: "OpenCode" });
     const actionsEl = headerEl.createDiv({ cls: "opencode-header-actions" });
     const reloadButton = actionsEl.createEl("button", {
       attr: { "aria-label": "Reload" }
     });
-    (0, import_obsidian.setIcon)(reloadButton, "refresh-cw");
+    (0, import_obsidian2.setIcon)(reloadButton, "refresh-cw");
     reloadButton.addEventListener("click", () => {
       this.reloadIframe();
     });
     const externalButton = actionsEl.createEl("button", {
       attr: { "aria-label": "Open in browser" }
     });
-    (0, import_obsidian.setIcon)(externalButton, "external-link");
+    (0, import_obsidian2.setIcon)(externalButton, "external-link");
     externalButton.addEventListener("click", () => {
       window.open(this.plugin.getServerUrl(), "_blank");
     });
     const stopButton = actionsEl.createEl("button", {
       attr: { "aria-label": "Stop server" }
     });
-    (0, import_obsidian.setIcon)(stopButton, "square");
+    (0, import_obsidian2.setIcon)(stopButton, "square");
     stopButton.addEventListener("click", () => {
       this.plugin.stopServer();
     });
@@ -175,7 +188,7 @@ var OpenCodeView = class extends import_obsidian.ItemView {
       cls: "opencode-status-container opencode-error"
     });
     const iconEl = statusContainer.createDiv({ cls: "opencode-status-icon" });
-    (0, import_obsidian.setIcon)(iconEl, "alert-circle");
+    (0, import_obsidian2.setIcon)(iconEl, "alert-circle");
     statusContainer.createEl("h3", { text: "Failed to start OpenCode" });
     statusContainer.createEl("p", {
       text: "There was an error starting the OpenCode server. Please check that OpenCode is installed and try again.",
@@ -210,7 +223,7 @@ var OpenCodeView = class extends import_obsidian.ItemView {
 };
 
 // src/SettingsTab.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 var import_fs = require("fs");
 var import_os = require("os");
 function expandTilde(path) {
@@ -222,7 +235,7 @@ function expandTilde(path) {
   }
   return path;
 }
-var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
+var OpenCodeSettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.validateTimeout = null;
@@ -233,7 +246,7 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: "OpenCode Settings" });
     containerEl.createEl("h3", { text: "Server Configuration" });
-    new import_obsidian2.Setting(containerEl).setName("Port").setDesc("Port number for the OpenCode web server").addText(
+    new import_obsidian3.Setting(containerEl).setName("Port").setDesc("Port number for the OpenCode web server").addText(
       (text) => text.setPlaceholder("14096").setValue(this.plugin.settings.port.toString()).onChange(async (value) => {
         const port = parseInt(value, 10);
         if (!isNaN(port) && port > 0 && port < 65536) {
@@ -242,13 +255,13 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
         }
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Hostname").setDesc("Hostname to bind the server to (usually 127.0.0.1)").addText(
+    new import_obsidian3.Setting(containerEl).setName("Hostname").setDesc("Hostname to bind the server to (usually 127.0.0.1)").addText(
       (text) => text.setPlaceholder("127.0.0.1").setValue(this.plugin.settings.hostname).onChange(async (value) => {
         this.plugin.settings.hostname = value || "127.0.0.1";
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("OpenCode path").setDesc(
+    new import_obsidian3.Setting(containerEl).setName("OpenCode path").setDesc(
       "Path to the OpenCode executable. Leave as 'opencode' if it's in your PATH."
     ).addText(
       (text) => text.setPlaceholder("opencode").setValue(this.plugin.settings.opencodePath).onChange(async (value) => {
@@ -256,7 +269,7 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Project directory").setDesc(
+    new import_obsidian3.Setting(containerEl).setName("Project directory").setDesc(
       "Override the starting directory for OpenCode. Leave empty to use the vault root. Supports ~ for home directory."
     ).addText(
       (text) => text.setPlaceholder("/path/to/project or ~/project").setValue(this.plugin.settings.projectDirectory).onChange((value) => {
@@ -269,7 +282,7 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
       })
     );
     containerEl.createEl("h3", { text: "Behavior" });
-    new import_obsidian2.Setting(containerEl).setName("Auto-start server").setDesc(
+    new import_obsidian3.Setting(containerEl).setName("Auto-start server").setDesc(
       "Automatically start the OpenCode server when Obsidian opens (not recommended for faster startup)"
     ).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.autoStart).onChange(async (value) => {
@@ -288,22 +301,22 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
       return;
     }
     if (!trimmed.startsWith("/") && !trimmed.startsWith("~") && !trimmed.match(/^[A-Za-z]:\\/)) {
-      new import_obsidian2.Notice("Project directory must be an absolute path (or start with ~)");
+      new import_obsidian3.Notice("Project directory must be an absolute path (or start with ~)");
       return;
     }
     const expanded = expandTilde(trimmed);
     try {
       if (!(0, import_fs.existsSync)(expanded)) {
-        new import_obsidian2.Notice("Project directory does not exist");
+        new import_obsidian3.Notice("Project directory does not exist");
         return;
       }
       const stat = (0, import_fs.statSync)(expanded);
       if (!stat.isDirectory()) {
-        new import_obsidian2.Notice("Project directory path is not a directory");
+        new import_obsidian3.Notice("Project directory path is not a directory");
         return;
       }
     } catch (error) {
-      new import_obsidian2.Notice(`Failed to validate path: ${error.message}`);
+      new import_obsidian3.Notice(`Failed to validate path: ${error.message}`);
       return;
     }
     await this.plugin.updateProjectDirectory(expanded);
@@ -381,7 +394,7 @@ var OpenCodeSettingTab = class extends import_obsidian2.PluginSettingTab {
 
 // src/ProcessManager.ts
 var import_child_process = require("child_process");
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var ProcessManager = class {
   constructor(settings, workingDirectory, projectDirectory, onStateChange) {
     this.process = null;
@@ -416,7 +429,7 @@ var ProcessManager = class {
       if (!this.projectDirectory) {
         const error = "Project directory (vault) not configured";
         console.error("[OpenCode Error]", error);
-        new import_obsidian3.Notice(`Failed to start OpenCode: ${error}`);
+        new import_obsidian4.Notice(`Failed to start OpenCode: ${error}`);
         this.setState("error");
         return false;
       }
@@ -468,7 +481,7 @@ var ProcessManager = class {
       });
       this.process.on("error", (err) => {
         console.error("Failed to start OpenCode process:", err);
-        new import_obsidian3.Notice(`Failed to start OpenCode: ${err.message}`);
+        new import_obsidian4.Notice(`Failed to start OpenCode: ${err.message}`);
         this.process = null;
         this.setState("error");
       });
@@ -479,7 +492,7 @@ var ProcessManager = class {
       } else {
         this.stop();
         this.setState("error");
-        new import_obsidian3.Notice("OpenCode server failed to start within timeout");
+        new import_obsidian4.Notice("OpenCode server failed to start within timeout");
         return false;
       }
     } catch (error) {
@@ -544,7 +557,7 @@ var ProcessManager = class {
 };
 
 // src/main.ts
-var OpenCodePlugin = class extends import_obsidian4.Plugin {
+var OpenCodePlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
@@ -553,6 +566,7 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
   }
   async onload() {
     console.log("Loading OpenCode plugin");
+    registerOpenCodeIcons();
     await this.loadSettings();
     const vaultPath = this.getVaultPath();
     const projectDirectory = this.getProjectDirectory();
@@ -564,7 +578,7 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
     );
     console.log("[OpenCode] Configured with project directory:", projectDirectory);
     this.registerView(OPENCODE_VIEW_TYPE, (leaf) => new OpenCodeView(leaf, this));
-    this.addRibbonIcon("terminal", "OpenCode", () => {
+    this.addRibbonIcon(OPENCODE_ICON_NAME, "OpenCode", () => {
       this.activateView();
     });
     this.addCommand({
@@ -667,12 +681,12 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
   // Start the OpenCode server
   async startServer() {
     if (!this.processManager) {
-      new import_obsidian4.Notice("OpenCode: Process manager not initialized");
+      new import_obsidian5.Notice("OpenCode: Process manager not initialized");
       return false;
     }
     const success = await this.processManager.start();
     if (success) {
-      new import_obsidian4.Notice("OpenCode server started");
+      new import_obsidian5.Notice("OpenCode server started");
     }
     return success;
   }
@@ -680,7 +694,7 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
   stopServer() {
     if (this.processManager) {
       this.processManager.stop();
-      new import_obsidian4.Notice("OpenCode server stopped");
+      new import_obsidian5.Notice("OpenCode server stopped");
     }
   }
   // Get the current process state
