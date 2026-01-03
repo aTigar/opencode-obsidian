@@ -347,7 +347,9 @@ var ProcessManager = class {
     return this.state;
   }
   getUrl() {
-    return `http://${this.settings.hostname}:${this.settings.port}`;
+    const baseUrl = `http://${this.settings.hostname}:${this.settings.port}`;
+    const encodedPath = btoa(this.projectDirectory);
+    return `${baseUrl}/${encodedPath}`;
   }
   async start() {
     var _a, _b;
@@ -356,16 +358,23 @@ var ProcessManager = class {
     }
     this.setState("starting");
     try {
+      if (!this.projectDirectory) {
+        const error = "Project directory (vault) not configured";
+        console.error("[OpenCode Error]", error);
+        new import_obsidian3.Notice(`Failed to start OpenCode: ${error}`);
+        this.setState("error");
+        return false;
+      }
       const alreadyRunning = await this.checkServerHealth();
       if (alreadyRunning) {
         console.log("OpenCode server already running on port", this.settings.port);
         this.setState("running");
         return true;
       }
-      console.log("[OpenCode] Starting server:", {
-        path: this.settings.opencodePath,
-        cwd: this.workingDirectory,
-        project: this.projectDirectory,
+      console.log("[OpenCode] Starting server with vault:", {
+        vaultDirectory: this.projectDirectory,
+        workingDirectory: this.workingDirectory,
+        opencodePath: this.settings.opencodePath,
         port: this.settings.port,
         hostname: this.settings.hostname
       });
@@ -490,12 +499,14 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
   async onload() {
     console.log("Loading OpenCode plugin");
     await this.loadSettings();
+    const vaultPath = this.getVaultPath();
     this.processManager = new ProcessManager(
       this.settings,
-      this.getVaultPath(),
-      this.getVaultPath(),
+      vaultPath,
+      vaultPath,
       (state) => this.notifyStateChange(state)
     );
+    console.log("[OpenCode] Configured with vault directory:", vaultPath);
     this.registerView(OPENCODE_VIEW_TYPE, (leaf) => new OpenCodeView(leaf, this));
     this.addRibbonIcon("terminal", "OpenCode", () => {
       this.activateView();
@@ -624,9 +635,14 @@ var OpenCodePlugin = class extends import_obsidian4.Plugin {
       callback(state);
     }
   }
-  // Get the vault path
+  // Get the vault path - this is the root directory of the Obsidian vault
+  // which will be passed to OpenCode as the project directory
   getVaultPath() {
     const adapter = this.app.vault.adapter;
-    return adapter.basePath || "";
+    const vaultPath = adapter.basePath || "";
+    if (!vaultPath) {
+      console.warn("[OpenCode] Warning: Could not determine vault path");
+    }
+    return vaultPath;
   }
 };

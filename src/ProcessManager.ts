@@ -34,7 +34,10 @@ export class ProcessManager {
   }
 
   getUrl(): string {
-    return `http://${this.settings.hostname}:${this.settings.port}`;
+    const baseUrl = `http://${this.settings.hostname}:${this.settings.port}`;
+    // Encode the project directory path as base64 for the URL
+    const encodedPath = btoa(this.projectDirectory);
+    return `${baseUrl}/${encodedPath}`;
   }
 
   async start(): Promise<boolean> {
