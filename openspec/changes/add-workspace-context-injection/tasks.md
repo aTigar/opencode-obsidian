@@ -2,8 +2,7 @@
 
 ## 1. Dependencies
 
-- [ ] 1.1 Add `@opencode-ai/sdk` to package.json dependencies
-- [ ] 1.2 Run `bun install` to install the SDK
+- [ ] 1.1 No new dependencies required (use direct `fetch()` calls)
 
 ## 2. Types and Settings
 
@@ -14,10 +13,10 @@
 
 ## 3. OpenCode Client Module
 
-- [ ] 3.1 Create `src/OpenCodeClient.ts` with SDK client wrapper
-- [ ] 3.2 Implement `getCurrentSessionId()` method to get active session
-- [ ] 3.3 Implement `updateContext()` method with revert + inject logic
-- [ ] 3.4 Add `contextMessageIds` Map for tracking injected messages per session
+- [ ] 3.1 Create `src/OpenCodeClient.ts` with a small HTTP wrapper
+- [ ] 3.2 Implement `createSession()` and session URL helpers
+- [ ] 3.3 Implement `updateContext()` using update-part or ignore+reinject (no revert)
+- [ ] 3.4 Track last injected context message/part IDs for the tracked session
 - [ ] 3.5 Add error handling for API failures (silent catch, log to console)
 
 ## 4. Workspace Context Module
@@ -37,9 +36,10 @@
 - [ ] 5.4 Register `active-leaf-change` event listener (conditional on setting)
 - [ ] 5.5 Register `layout-change` event listener (conditional on setting)
 - [ ] 5.6 Register `editor-change` event listener for selection changes (conditional on setting)
-- [ ] 5.7 Initialize `OpenCodeClient` lazily when first needed
-- [ ] 5.8 Add server running check before attempting context updates
-- [ ] 5.9 Trigger initial context injection when server reaches running state
+- [ ] 5.7 Create an OpenCode session on first view open and store the iframe URL (in-memory)
+- [ ] 5.8 Before injecting, resolve `sessionID` by parsing the current iframe URL (if no session route, no-op)
+- [ ] 5.9 Add server running check before attempting context updates
+- [ ] 5.10 Trigger initial context injection when server reaches running state and a session exists
 
 ## 6. Settings UI
 
@@ -52,7 +52,7 @@
 
 - [ ] 7.1 Manual test: Open multiple notes, verify context appears in OpenCode
 - [ ] 7.2 Manual test: Select text, verify selection appears in context with source file
-- [ ] 7.3 Manual test: Close notes, verify context updates (old reverted, new injected)
+- [ ] 7.3 Manual test: Close notes, verify context updates (old ignored/updated, new injected)
 - [ ] 7.4 Manual test: Clear selection, verify selection section is removed
 - [ ] 7.5 Manual test: Disable setting, verify no context injection
 - [ ] 7.6 Manual test: Server not running, verify no errors thrown

@@ -29,14 +29,15 @@ The plugin SHALL collect the currently selected text from the active editor, if 
 - **AND** an indicator is added showing truncation occurred
 
 ### Requirement: Context Injection to OpenCode
-The plugin SHALL inject the workspace context (open notes and selected text) into the current OpenCode session.
+The plugin SHALL inject the workspace context (open notes and selected text) into the OpenCode session currently displayed in the embedded iframe.
 
 #### Scenario: Inject context on workspace change
 - **WHEN** the user opens, closes, or switches between notes
 - **AND** the setting "Inject workspace context" is enabled
 - **AND** the OpenCode server is running
-- **THEN** the plugin sends the workspace context to the current OpenCode session
-- **AND** the context is injected using the SDK with `noReply: true` (no AI response triggered)
+- **AND** a `sessionID` can be resolved from the current iframe URL
+- **THEN** the plugin sends the workspace context to that session
+- **AND** the context is injected using `session.prompt({ noReply: true })` (no AI response triggered)
 
 #### Scenario: Inject context on selection change
 - **WHEN** the user changes their text selection in an editor
@@ -47,25 +48,68 @@ The plugin SHALL inject the workspace context (open notes and selected text) int
 #### Scenario: Initial context injection
 - **WHEN** the OpenCode server transitions to running state
 - **AND** the setting is enabled
+- **AND** a tracked session exists (created on first open)
 - **THEN** the plugin injects the current workspace context
 
-### Requirement: Context Replacement via Revert
+### Requirement: Context Replacement (Non-Destructive)
 The plugin SHALL replace previous context injections rather than accumulating them.
 
-#### Scenario: Revert before re-inject
+#### Scenario: Update previous context part
 - **WHEN** the plugin injects new context
-- **AND** a previous context message exists for the session
-- **THEN** the plugin reverts the previous context message using `session.revert()`
-- **AND** then injects the new context
-- **AND** stores the new message ID for future revert
+- **AND** a previous context part exists for the session
+- **THEN** the plugin updates the previous context part in-place to match the new context
+- **AND** no new context message is added to the session history
 
-#### Scenario: Revert failure handling
-- **WHEN** the revert operation fails (message already gone or session changed)
+#### Scenario: Ignore previous context part and re-inject
+- **WHEN** in-place update is not available
+- **AND** a previous context part exists for the session
+- **THEN** the plugin marks the previous context part as `ignored: true`
+- **AND** injects new context with `noReply: true`
+- **AND** stores the new message/part IDs for future updates
+
+#### Scenario: Replacement failure handling
+- **WHEN** a previous context part cannot be updated or ignored (already removed, invalid IDs)
 - **THEN** the plugin continues with fresh context injection
 - **AND** logs the error to console for debugging
 
+#### Scenario: Never revert
+- **WHEN** updating context
+- **THEN** the plugin MUST NOT call `session.revert()` as part of this feature
+
 ### Requirement: Debounced Context Updates
 The plugin SHALL debounce workspace change events to prevent excessive API calls.
+
+### Requirement: Session Tracking and URL Persistence
+The plugin SHALL create and track an OpenCode session and preserve the iframe URL for the duration of the Obsidian process.
+
+#### Scenario: Create session on first view open
+- **WHEN** the OpenCode view is opened for the first time in the current Obsidian run
+- **AND** the OpenCode server is running
+- **THEN** the plugin creates a new OpenCode session
+- **AND** updates the iframe URL to the session route
+- **AND** stores that URL for later restores
+
+#### Scenario: Restore last URL on reopen
+- **WHEN** the OpenCode view is closed and reopened
+- **AND** a previous iframe URL was stored in memory
+- **THEN** the iframe is loaded with the stored URL
+
+#### Scenario: Adopt user-changed session
+- **WHEN** the user navigates to a different session within the iframe UI
+- **AND** the plugin is about to inject context
+- **THEN** the plugin reads the iframe `src` URL
+- **AND** resolves the session ID from that URL
+- **AND** updates the tracked session and stored URL to match
+
+#### Scenario: No session route
+- **WHEN** the iframe URL does not contain a session route
+- **AND** the plugin is about to inject context
+- **THEN** the plugin does not inject any context
+
+#### Scenario: Invalidate stored URL when base changes
+- **WHEN** hostname, port, or project directory changes
+- **THEN** the plugin clears the stored URL and tracked session
+- **AND** a new session is created on the next first open
 
 #### Scenario: Rapid file switching
 - **WHEN** the user rapidly opens or closes multiple files
@@ -120,4 +164,4 @@ The plugin SHALL format the context as a system reminder containing file paths a
 - **WHEN** no markdown files are open
 - **AND** no text is selected
 - **THEN** no context message is injected
-- **AND** any previous context message is reverted
+- **AND** any previous injected context part is marked as `ignored: true`
