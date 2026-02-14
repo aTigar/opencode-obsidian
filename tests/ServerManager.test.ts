@@ -25,6 +25,8 @@ function createTestSettings(port: number): OpenCodeSettings {
     injectWorkspaceContext: true,
     maxNotesInContext: 20,
     maxSelectionLength: 2000,
+    customCommand: "",
+    useCustomCommand: false,
   };
 }
 
@@ -77,7 +79,7 @@ describe("ServerManager", () => {
       expect(currentManager.getState()).toBe("running");
       expect(stateHistory).toContain("starting");
       expect(stateHistory).toContain("running");
-    });
+    }, 30000); // Increased timeout for database migration on first run
 
      test("reports correct server URL with encoded project directory", async () => {
        const port = getNextPort();

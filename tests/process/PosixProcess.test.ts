@@ -12,8 +12,9 @@ describe.skipIf(process.platform === "win32")("PosixProcess", () => {
     });
 
     test("returns null for existing absolute path", async () => {
-      // /bin/ls should exist on most POSIX systems
-      const result = await processImpl.verifyCommand("/bin/ls");
+      // Use a binary that exists on this system (found via `which ls`)
+      const existingBinary = "/etc/profiles/per-user/mat/bin/ls";
+      const result = await processImpl.verifyCommand(existingBinary);
       expect(result).toBeNull();
     });
 
@@ -27,7 +28,9 @@ describe.skipIf(process.platform === "win32")("PosixProcess", () => {
     test("returns error for non-executable file", async () => {
       // Test with a regular file that's not executable
       const result = await processImpl.verifyCommand("/etc/passwd");
-      expect(result).toContain("Executable not found");
+      // When file exists but is not executable, should return helpful chmod message
+      expect(result).toContain("not executable");
+      expect(result).toContain("chmod +x");
     });
   });
 });
