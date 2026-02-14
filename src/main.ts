@@ -7,6 +7,7 @@ import { ServerManager, ServerState } from "./server/ServerManager";
 import { registerOpenCodeIcons, OPENCODE_ICON_NAME } from "./icons";
 import { OpenCodeClient } from "./client/OpenCodeClient";
 import { ContextManager } from "./context/ContextManager";
+import { ExecutableResolver } from "./server/ExecutableResolver";
 
 export default class OpenCodePlugin extends Plugin {
   settings: OpenCodeSettings = DEFAULT_SETTINGS;
@@ -24,6 +25,9 @@ export default class OpenCodePlugin extends Plugin {
     registerOpenCodeIcons();
 
     await this.loadSettings();
+
+    // Attempt autodetect if opencodePath is empty and not using custom command
+    await this.attemptAutodetect();
 
     const projectDirectory = this.getProjectDirectory();
 
@@ -153,6 +157,32 @@ export default class OpenCodePlugin extends Plugin {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
+  /**
+   * Attempt to autodetect opencode executable on startup
+   * Triggers when opencodePath is empty and useCustomCommand is false
+   */
+  private async attemptAutodetect(): Promise<void> {
+    // Only autodetect if path is empty and not using custom command mode
+    if (this.settings.opencodePath || this.settings.useCustomCommand) {
+      return;
+    }
+
+    console.log("[OpenCode] Attempting to autodetect opencode executable...");
+
+    const detectedPath = ExecutableResolver.resolve("opencode");
+    
+    // Check if a different path was found (not the fallback)
+    if (detectedPath && detectedPath !== "opencode") {
+      console.log("[OpenCode] Autodetected opencode at:", detectedPath);
+      this.settings.opencodePath = detectedPath;
+      await this.saveData(this.settings);
+      new Notice(`OpenCode executable found at ${detectedPath}`);
+    } else {
+      console.log("[OpenCode] Could not autodetect opencode executable");
+      new Notice("Could not find opencode. Please check Settings");
+    }
+  }
+
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
     this.processManager.updateSettings(this.settings);
@@ -165,6 +195,13 @@ export default class OpenCodePlugin extends Plugin {
     const success = await this.processManager.start();
     if (success) {
       new Notice("OpenCode server started");
+    } else {
+      const error = this.processManager.getLastError();
+      if (error) {
+        new Notice(`OpenCode failed to start: ${error}`, 10000); // Show for 10 seconds
+      } else {
+        new Notice("OpenCode failed to start. Check Settings for details.", 5000);
+      }
     }
     return success;
   }

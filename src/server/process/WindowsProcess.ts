@@ -35,7 +35,7 @@ export class WindowsProcess implements OpenCodeProcess {
       await this.execAsync(`where "${command}"`);
       return null;
     } catch {
-      return `Executable not found at '${command}'`;
+      return `Executable not found at '${command}'. Check Settings → OpenCode path, or click "Autodetect"`;
     }
   }
 

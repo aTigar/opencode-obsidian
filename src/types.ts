@@ -11,6 +11,8 @@ export interface OpenCodeSettings {
   injectWorkspaceContext: boolean;
   maxNotesInContext: number;
   maxSelectionLength: number;
+  customCommand: string;
+  useCustomCommand: boolean;
 }
 
 export const DEFAULT_SETTINGS: OpenCodeSettings = {
@@ -24,6 +26,8 @@ export const DEFAULT_SETTINGS: OpenCodeSettings = {
   injectWorkspaceContext: false,
   maxNotesInContext: 20,
   maxSelectionLength: 2000,
+  customCommand: "",
+  useCustomCommand: false,
 };
 
 export const OPENCODE_VIEW_TYPE = "opencode-view";

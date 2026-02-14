@@ -191,3 +191,18 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Error details in settings */
+.opencode-error-details {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background-color: var(--background-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--text-error);
+}
+
+.opencode-error-text {
+  color: var(--text-error);
+  font-size: 0.9em;
+  line-height: 1.4;
+}

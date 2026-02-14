@@ -3,6 +3,7 @@ import { existsSync, statSync } from "fs";
 import { homedir } from "os";
 import { OpenCodeSettings, ViewLocation } from "../types";
 import { ServerManager } from "../server/ServerManager";
+import { ExecutableResolver } from "../server/ExecutableResolver";
 
 function expandTilde(path: string): string {
   if (path === "~") {
@@ -62,20 +63,71 @@ export class OpenCodeSettingTab extends PluginSettingTab {
           })
       );
 
+    // Command Mode Toggle
     new Setting(containerEl)
-      .setName("OpenCode path")
-      .setDesc(
-        "Path to the OpenCode executable. Leave as 'opencode' if it's in your PATH."
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("opencode")
-          .setValue(this.settings.opencodePath)
+      .setName("Use custom command")
+      .setDesc("Enable to use a custom shell command instead of the executable path")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.settings.useCustomCommand)
           .onChange(async (value) => {
-            this.settings.opencodePath = value || "opencode";
+            this.settings.useCustomCommand = value;
             await this.onSettingsChange();
+            // Re-render to show/hide appropriate fields
+            this.display();
           })
       );
+
+    if (this.settings.useCustomCommand) {
+      // Custom Command Mode
+      new Setting(containerEl)
+        .setName("Custom command")
+        .setDesc("Full shell command to start OpenCode. You control all arguments (e.g., 'opencode serve --port 14096')")
+        .addTextArea((text) => {
+          text
+            .setPlaceholder("opencode serve --port 14096 --hostname 127.0.0.1")
+            .setValue(this.settings.customCommand)
+            .onChange(async (value) => {
+              this.settings.customCommand = value;
+              await this.onSettingsChange();
+            });
+          text.inputEl.rows = 3;
+          text.inputEl.style.width = "100%";
+          return text;
+        });
+    } else {
+      // Path Mode
+      const pathSetting = new Setting(containerEl)
+        .setName("OpenCode path")
+        .setDesc("Path to the OpenCode executable. Leave empty to autodetect.")
+        .addText((text) =>
+          text
+            .setPlaceholder("opencode")
+            .setValue(this.settings.opencodePath)
+            .onChange(async (value) => {
+              this.settings.opencodePath = value;
+              await this.onSettingsChange();
+            })
+        );
+      
+      // Add Autodetect button
+      pathSetting.addButton((button) => {
+        button
+          .setButtonText("Autodetect")
+          .onClick(async () => {
+            const detectedPath = ExecutableResolver.resolve("opencode");
+            if (detectedPath && detectedPath !== "opencode") {
+              this.settings.opencodePath = detectedPath;
+              await this.onSettingsChange();
+              // Refresh the text input
+              this.display();
+              new Notice(`OpenCode executable found at ${detectedPath}`);
+            } else {
+              new Notice("Could not find opencode. Please check your installation.");
+            }
+          });
+      });
+    }
 
     new Setting(containerEl)
       .setName("Project directory")
@@ -240,6 +292,18 @@ export class OpenCodeSettingTab extends PluginSettingTab {
       text: statusText[state],
       cls: `opencode-status-badge ${statusClass[state]}`,
     });
+
+    // Show error message if state is error
+    if (state === "error") {
+      const errorMsg = this.serverManager.getLastError();
+      if (errorMsg) {
+        const errorEl = container.createDiv({ cls: "opencode-error-details" });
+        errorEl.createEl("div", {
+          text: errorMsg,
+          cls: "opencode-error-text"
+        });
+      }
+    }
 
     if (state === "running") {
       const urlEl = container.createDiv({ cls: "opencode-status-line" });

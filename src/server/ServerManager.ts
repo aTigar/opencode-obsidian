@@ -1,10 +1,11 @@
-import { ChildProcess } from "child_process";
+import { ChildProcess, SpawnOptions } from "child_process";
 import { EventEmitter } from "events";
 import { OpenCodeSettings } from "../types";
 import { ServerState } from "./types";
 import { OpenCodeProcess } from "./process/OpenCodeProcess";
 import { WindowsProcess } from "./process/WindowsProcess";
 import { PosixProcess } from "./process/PosixProcess";
+import { ExecutableResolver } from "./ExecutableResolver";
 
 export type { ServerState } from "./types";
 
@@ -60,10 +61,34 @@ export class ServerManager extends EventEmitter {
       return this.setError("Project directory (vault) not configured");
     }
 
-    // Pre-flight check: verify executable exists
-    const commandError = await this.processImpl.verifyCommand(this.settings.opencodePath);
-    if (commandError) {
-      return this.setError(commandError);
+    // Determine execution mode and resolve executable path
+    let executablePath: string;
+    let spawnOptions: SpawnOptions;
+    
+    if (this.settings.useCustomCommand) {
+      // Custom command mode: use custom command directly with shell
+      executablePath = this.settings.customCommand;
+      spawnOptions = {
+        cwd: this.projectDirectory,
+        env: { ...process.env, NODE_USE_SYSTEM_CA: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: true,
+      };
+    } else {
+      // Path mode: resolve executable and verify
+      executablePath = ExecutableResolver.resolve(this.settings.opencodePath);
+      
+      // Pre-flight check: verify executable exists (only for path mode)
+      const commandError = await this.processImpl.verifyCommand(executablePath);
+      if (commandError) {
+        return this.setError(commandError);
+      }
+      
+      spawnOptions = {
+        cwd: this.projectDirectory,
+        env: { ...process.env, NODE_USE_SYSTEM_CA: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+      };
     }
 
     if (await this.checkServerHealth()) {
@@ -76,30 +101,37 @@ export class ServerManager extends EventEmitter {
     }
 
     console.log("[OpenCode] Starting server:", {
-      opencodePath: this.settings.opencodePath,
+      mode: this.settings.useCustomCommand ? "custom" : "path",
+      command: executablePath,
       port: this.settings.port,
       hostname: this.settings.hostname,
       cwd: this.projectDirectory,
       projectDirectory: this.projectDirectory,
     });
 
-    this.process = this.processImpl.start(
-      this.settings.opencodePath,
-      [
-        "serve",
-        "--port",
-        this.settings.port.toString(),
-        "--hostname",
-        this.settings.hostname,
-        "--cors",
-        "app://obsidian.md",
-      ],
-      {
-        cwd: this.projectDirectory,
-        env: { ...process.env, NODE_USE_SYSTEM_CA: "1" },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
+    if (this.settings.useCustomCommand) {
+      // Custom command mode: spawn with shell, no args appended
+      this.process = this.processImpl.start(
+        executablePath,
+        [], // User controls all arguments in custom command
+        spawnOptions
+      );
+    } else {
+      // Path mode: spawn with default arguments
+      this.process = this.processImpl.start(
+        executablePath,
+        [
+          "serve",
+          "--port",
+          this.settings.port.toString(),
+          "--hostname",
+          this.settings.hostname,
+          "--cors",
+          "app://obsidian.md",
+        ],
+        spawnOptions
+      );
+    }
 
     console.log("[OpenCode] Process spawned with PID:", this.process.pid);
 
@@ -131,8 +163,11 @@ export class ServerManager extends EventEmitter {
       this.process = null;
 
       if (err.code === "ENOENT") {
+        const command = this.settings.useCustomCommand 
+          ? this.settings.customCommand 
+          : this.settings.opencodePath;
         this.setError(
-          `Executable not found at '${this.settings.opencodePath}'`
+          `Executable not found: '${command}'`
         );
       } else {
         this.setError(`Failed to start: ${err.message}`);

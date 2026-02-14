@@ -67,3 +67,30 @@ The system SHALL maintain backward compatibility with existing opencodePath conf
 - **WHEN** the plugin loads
 - **THEN** the system SHALL use the existing opencodePath
 - **AND** continue working in path mode with default arguments
+
+### Requirement: Detailed error messages
+The system SHALL provide clear, actionable error messages when the server fails to start.
+
+#### Scenario: Executable not found
+- **GIVEN** useCustomCommand is false
+- **AND** opencodePath is set to a non-existent absolute path
+- **WHEN** the server fails to start
+- **THEN** the error message SHALL be: "Executable not found at '<path>'. Check Settings → OpenCode path, or click 'Autodetect'"
+
+#### Scenario: Executable exists but not executable
+- **GIVEN** useCustomCommand is false
+- **AND** opencodePath points to a file that exists but lacks execute permission
+- **WHEN** the server fails to start
+- **THEN** the error message SHALL be: "'<path>' exists but is not executable. Run: chmod +x <path>"
+
+#### Scenario: Error displayed in Settings UI
+- **GIVEN** the server state is "error"
+- **AND** an error message is stored
+- **WHEN** the user views the Settings page
+- **THEN** the error message SHALL be displayed below the "Status: Error" badge
+
+#### Scenario: Error displayed as toast notification
+- **GIVEN** the user attempts to start the server from the main UI (not Settings)
+- **AND** the server fails to start
+- **THEN** a toast notification SHALL display the error message
+- **AND** the toast SHALL remain visible for 10 seconds

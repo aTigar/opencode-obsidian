@@ -1,4 +1,5 @@
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
+import { existsSync } from "fs";
 import { OpenCodeProcess } from "./OpenCodeProcess";
 
 export class PosixProcess implements OpenCodeProcess {
@@ -46,12 +47,16 @@ export class PosixProcess implements OpenCodeProcess {
   async verifyCommand(command: string): Promise<string | null> {
     // Check if command is absolute path - verify it exists and is executable
     if (command.startsWith('/') || command.startsWith('./')) {
+      const fs = require('fs');
       try {
-        const fs = require('fs');
         fs.accessSync(command, fs.constants.X_OK);
         return null;
-      } catch {
-        return `Executable not found at '${command}'`;
+      } catch (err: any) {
+        // Check if file exists but isn't executable
+        if (existsSync(command)) {
+          return `'${command}' exists but is not executable. Run: chmod +x ${command}`;
+        }
+        return `Executable not found at '${command}'. Check Settings → OpenCode path, or click "Autodetect"`;
       }
     }
     // For non-absolute paths, let spawn handle it (will fire ENOENT if not found)
