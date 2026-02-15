@@ -56,18 +56,30 @@ If you want to contribute or develop the plugin:
 - `Cmd/Ctrl+Shift+O` to toggle the panel
 - Server starts automatically when you open the panel
 
-## Context injection (experimental)
-
-This plugin can automatically inject context to the running OC instance: list of open notes and currently selected text.
-
-It can be configured form the plugin settings.
-
-Currently, this is work-in-progress feature with some limitations:
-- It won't work when creating new session from OC interface.
 
 ## Settings
 
-<img src="./assets/plugin_settings.png" alt="Available plugin settings" />
+### Custom Command Mode
+
+Enable "Use custom command" when you need more control over how OpenCode starts—for example, to add extra CLI flags, use a custom wrapper script, or run OpenCode through a container or virtual environment.
+
+When using custom command:
+
+- **Hostname and port must match** the values set in the Port and Hostname fields above
+- You **must include `--cors app://obsidian.md`** to allow Obsidian to embed the OpenCode interface
+
+Example:
+```bash
+opencode serve --port 14096 --hostname 127.0.0.1 --cors app://obsidian.md
+```
+
+Other settings (port, hostname, auto-start, view location, context injection) are available through the settings UI and are self-explanatory.
+
+### Context injection (experimental)
+
+This plugin can automatically inject context to the running OC instance: list of open notes and currently selected text.
+
+Currently, this is work-in-progress feature with some limitations - it won't work when creating new session from OC interface.
 
 ## Windows Troubleshooting
 

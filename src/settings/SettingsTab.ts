@@ -63,8 +63,7 @@ export class OpenCodeSettingTab extends PluginSettingTab {
           })
       );
 
-    // Command Mode Toggle
-    new Setting(containerEl)
+    const customCmdSetting = new Setting(containerEl)
       .setName("Use custom command")
       .setDesc("Enable to use a custom shell command instead of the executable path")
       .addToggle((toggle) =>
@@ -77,15 +76,25 @@ export class OpenCodeSettingTab extends PluginSettingTab {
             this.display();
           })
       );
+    
+    const descEl = customCmdSetting.descEl;
+    descEl.createEl("br");
+    const linkEl = descEl.createEl("a", {
+      text: "Learn more",
+      href: "https://github.com/mtymek/opencode-obsidian#custom-command-mode"
+    });
+    linkEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.open(linkEl.href, "_blank");
+    });
 
     if (this.settings.useCustomCommand) {
-      // Custom Command Mode
       new Setting(containerEl)
         .setName("Custom command")
-        .setDesc("Full shell command to start OpenCode. You control all arguments (e.g., 'opencode serve --port 14096')")
+        .setDesc("Custom shell command to start OpenCode.")
         .addTextArea((text) => {
           text
-            .setPlaceholder("opencode serve --port 14096 --hostname 127.0.0.1")
+            .setPlaceholder("opencode serve --port 14096 --hostname 127.0.0.1 --cors app://obsidian.md")
             .setValue(this.settings.customCommand)
             .onChange(async (value) => {
               this.settings.customCommand = value;
@@ -96,10 +105,8 @@ export class OpenCodeSettingTab extends PluginSettingTab {
           return text;
         });
     } else {
-      // Path Mode
       const pathSetting = new Setting(containerEl)
-        .setName("OpenCode path")
-        .setDesc("Path to the OpenCode executable. Leave empty to autodetect.")
+        .setName("OpenCode executable path")
         .addText((text) =>
           text
             .setPlaceholder("opencode")
@@ -110,7 +117,6 @@ export class OpenCodeSettingTab extends PluginSettingTab {
             })
         );
       
-      // Add Autodetect button
       pathSetting.addButton((button) => {
         button
           .setButtonText("Autodetect")
@@ -132,7 +138,7 @@ export class OpenCodeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Project directory")
       .setDesc(
-        "Override the starting directory for OpenCode. Leave empty to use the vault root. Supports ~ for home directory."
+        "Override the starting directory for OpenCode. Leave empty to use the vault root."
       )
       .addText((text) =>
         text
@@ -293,7 +299,6 @@ export class OpenCodeSettingTab extends PluginSettingTab {
       cls: `opencode-status-badge ${statusClass[state]}`,
     });
 
-    // Show error message if state is error
     if (state === "error") {
       const errorMsg = this.serverManager.getLastError();
       if (errorMsg) {
