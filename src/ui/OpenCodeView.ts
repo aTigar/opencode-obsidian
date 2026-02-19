@@ -132,7 +132,21 @@ export class OpenCodeView extends ItemView {
     const titleSection = headerEl.createDiv({ cls: "opencode-header-title" });
     const iconEl = titleSection.createSpan();
     setIcon(iconEl, OPENCODE_ICON_NAME);
-    titleSection.createSpan({ text: "OpenCode" });
+
+    // Show active project name if set, otherwise just "OpenCode"
+    const activeProject = this.plugin.getActiveProjectName();
+    if (activeProject) {
+      const projectButton = titleSection.createSpan({
+        text: activeProject,
+        cls: "opencode-project-indicator",
+        attr: { "aria-label": "Switch project" },
+      });
+      projectButton.addEventListener("click", () => {
+        this.plugin.openProjectPicker();
+      });
+    } else {
+      titleSection.createSpan({ text: "OpenCode" });
+    }
 
     const actionsEl = headerEl.createDiv({ cls: "opencode-header-actions" });
 

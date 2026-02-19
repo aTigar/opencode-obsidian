@@ -1,5 +1,5 @@
 import { Plugin, WorkspaceLeaf, Notice, EventRef, MarkdownView } from "obsidian";
-import { OpenCodeSettings, DEFAULT_SETTINGS, OPENCODE_VIEW_TYPE } from "./types";
+import { OpenCodeSettings, DEFAULT_SETTINGS, OPENCODE_VIEW_TYPE, ProjectEntry } from "./types";
 import { OpenCodeView } from "./ui/OpenCodeView";
 import { ViewManager } from "./ui/ViewManager";
 import { OpenCodeSettingTab } from "./settings/SettingsTab";
@@ -8,6 +8,8 @@ import { registerOpenCodeIcons, OPENCODE_ICON_NAME } from "./icons";
 import { OpenCodeClient } from "./client/OpenCodeClient";
 import { ContextManager } from "./context/ContextManager";
 import { ExecutableResolver } from "./server/ExecutableResolver";
+import { ProjectPickerModal } from "./ui/ProjectPickerModal";
+import { execSync } from "child_process";
 
 export default class OpenCodePlugin extends Plugin {
   settings: OpenCodeSettings = DEFAULT_SETTINGS;
@@ -126,6 +128,14 @@ export default class OpenCodePlugin extends Plugin {
       name: "Stop OpenCode server",
       callback: () => {
         this.stopServer();
+      },
+    });
+
+    this.addCommand({
+      id: "switch-opencode-project",
+      name: "Switch OpenCode project",
+      callback: () => {
+        this.openProjectPicker();
       },
     });
 
@@ -273,10 +283,24 @@ export default class OpenCodePlugin extends Plugin {
   }
 
   getProjectDirectory(): string {
+    // 1. Check named projects: if activeProjectName matches, use that path
+    if (this.settings.activeProjectName && this.settings.projects.length > 0) {
+      const active = this.settings.projects.find(
+        (p) => p.name === this.settings.activeProjectName
+      );
+      if (active?.path) {
+        console.log("[OpenCode] Using named project directory:", active.name, "->", active.path);
+        return active.path;
+      }
+    }
+
+    // 2. Fall back to legacy projectDirectory setting
     if (this.settings.projectDirectory) {
       console.log("[OpenCode] Using project directory from settings:", this.settings.projectDirectory);
       return this.settings.projectDirectory;
     }
+
+    // 3. Fall back to vault root
     const adapter = this.app.vault.adapter as any;
     const vaultPath = adapter.basePath || "";
     if (!vaultPath) {
@@ -284,6 +308,68 @@ export default class OpenCodePlugin extends Plugin {
     }
     console.log("[OpenCode] Using vault path as project directory:", vaultPath);
     return vaultPath;
+  }
+
+  getActiveProjectName(): string {
+    if (this.settings.activeProjectName && this.settings.projects.length > 0) {
+      const active = this.settings.projects.find(
+        (p) => p.name === this.settings.activeProjectName
+      );
+      if (active) return active.name;
+    }
+    return "";
+  }
+
+  openProjectPicker(): void {
+    if (this.settings.projects.length === 0) {
+      new Notice("No projects configured. Add projects in OpenCode settings.");
+      return;
+    }
+
+    new ProjectPickerModal(
+      this.app,
+      this.settings.projects,
+      this.settings.activeProjectName,
+      (project: ProjectEntry) => {
+        void this.switchProject(project);
+      }
+    ).open();
+  }
+
+  async switchProject(project: ProjectEntry): Promise<void> {
+    if (project.name === this.settings.activeProjectName) {
+      new Notice(`Already on project: ${project.name}`);
+      return;
+    }
+
+    new Notice(`Switching to project: ${project.name}...`);
+
+    // Run git pull if enabled
+    if (this.settings.gitPullOnSwitch) {
+      try {
+        console.log("[OpenCode] Running git pull in:", project.path);
+        execSync("git pull", {
+          cwd: project.path,
+          timeout: 15000,
+          stdio: "pipe",
+        });
+        console.log("[OpenCode] Git pull completed");
+      } catch (error) {
+        const msg = (error as Error).message;
+        console.warn("[OpenCode] Git pull failed (continuing anyway):", msg);
+        new Notice(`Git pull warning: ${msg.substring(0, 100)}`, 5000);
+      }
+    }
+
+    // Update active project
+    this.settings.activeProjectName = project.name;
+    this.settings.projectDirectory = project.path;
+    await this.saveData(this.settings);
+
+    // Trigger server restart via existing mechanism
+    this.processManager.updateProjectDirectory(project.path);
+
+    new Notice(`Switched to: ${project.name}`);
   }
 
   private registerCleanupHandlers(): void {

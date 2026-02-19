@@ -1,5 +1,10 @@
 export type ViewLocation = "sidebar" | "main";
 
+export interface ProjectEntry {
+  name: string;
+  path: string;
+}
+
 export interface OpenCodeSettings {
   port: number;
   hostname: string;
@@ -13,6 +18,9 @@ export interface OpenCodeSettings {
   maxSelectionLength: number;
   customCommand: string;
   useCustomCommand: boolean;
+  projects: ProjectEntry[];
+  activeProjectName: string;
+  gitPullOnSwitch: boolean;
 }
 
 export const DEFAULT_SETTINGS: OpenCodeSettings = {
@@ -28,6 +36,9 @@ export const DEFAULT_SETTINGS: OpenCodeSettings = {
   maxSelectionLength: 2000,
   customCommand: "",
   useCustomCommand: false,
+  projects: [],
+  activeProjectName: "",
+  gitPullOnSwitch: true,
 };
 
 export const OPENCODE_VIEW_TYPE = "opencode-view";

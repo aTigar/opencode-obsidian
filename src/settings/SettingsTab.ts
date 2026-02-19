@@ -1,7 +1,7 @@
 import { App, Plugin, PluginSettingTab, Setting, Notice } from "obsidian";
 import { existsSync, statSync } from "fs";
 import { homedir } from "os";
-import { OpenCodeSettings, ViewLocation } from "../types";
+import { OpenCodeSettings, ViewLocation, ProjectEntry } from "../types";
 import { ServerManager } from "../server/ServerManager";
 import { ExecutableResolver } from "../server/ExecutableResolver";
 
@@ -32,6 +32,133 @@ export class OpenCodeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "OpenCode Settings" });
+
+    // --- Projects section ---
+    containerEl.createEl("h3", { text: "Projects" });
+
+    if (this.settings.projects.length > 0) {
+      for (let i = 0; i < this.settings.projects.length; i++) {
+        const project = this.settings.projects[i];
+        const isActive = project.name === this.settings.activeProjectName;
+
+        const setting = new Setting(containerEl)
+          .setName(project.name + (isActive ? " (active)" : ""))
+          .setDesc(project.path);
+
+        if (!isActive) {
+          setting.addButton((btn) =>
+            btn.setButtonText("Activate").onClick(async () => {
+              this.settings.activeProjectName = project.name;
+              this.settings.projectDirectory = project.path;
+              this.serverManager.updateProjectDirectory(expandTilde(project.path));
+              await this.onSettingsChange();
+              this.display();
+            })
+          );
+        }
+
+        setting.addButton((btn) =>
+          btn
+            .setButtonText("Remove")
+            .setWarning()
+            .onClick(async () => {
+              this.settings.projects.splice(i, 1);
+              if (this.settings.activeProjectName === project.name) {
+                this.settings.activeProjectName = "";
+                this.settings.projectDirectory = "";
+              }
+              await this.onSettingsChange();
+              this.display();
+            })
+        );
+      }
+    } else {
+      containerEl.createEl("p", {
+        text: "No projects configured. Add a project below.",
+        cls: "setting-item-description",
+      });
+    }
+
+    // Add new project controls
+    const addProjectContainer = containerEl.createDiv({ cls: "opencode-add-project" });
+    let newName = "";
+    let newPath = "";
+
+    new Setting(addProjectContainer)
+      .setName("Add project")
+      .setDesc("Define a named project with an absolute path")
+      .addText((text) =>
+        text.setPlaceholder("Project name").onChange((value) => {
+          newName = value;
+        })
+      )
+      .addText((text) =>
+        text.setPlaceholder("/absolute/path/to/project").onChange((value) => {
+          newPath = value;
+        })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("Add")
+          .setCta()
+          .onClick(async () => {
+            if (!newName.trim() || !newPath.trim()) {
+              new Notice("Both name and path are required");
+              return;
+            }
+
+            const expanded = expandTilde(newPath.trim());
+            try {
+              if (!existsSync(expanded)) {
+                new Notice("Path does not exist: " + expanded);
+                return;
+              }
+              if (!statSync(expanded).isDirectory()) {
+                new Notice("Path is not a directory");
+                return;
+              }
+            } catch (error) {
+              new Notice(`Path validation failed: ${(error as Error).message}`);
+              return;
+            }
+
+            if (this.settings.projects.some((p) => p.name === newName.trim())) {
+              new Notice("A project with this name already exists");
+              return;
+            }
+
+            this.settings.projects.push({
+              name: newName.trim(),
+              path: expanded,
+            });
+
+            // Auto-activate if first project
+            if (this.settings.projects.length === 1) {
+              this.settings.activeProjectName = newName.trim();
+              this.settings.projectDirectory = expanded;
+              this.serverManager.updateProjectDirectory(expanded);
+            }
+
+            await this.onSettingsChange();
+            this.display();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Git pull on project switch")
+      .setDesc(
+        "Run 'git pull' in the project directory before restarting the server when switching projects"
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.settings.gitPullOnSwitch)
+          .onChange(async (value) => {
+            this.settings.gitPullOnSwitch = value;
+            await this.onSettingsChange();
+          })
+      );
+
+    // --- Server Configuration ---
     containerEl.createEl("h3", { text: "Server Configuration" });
 
     new Setting(containerEl)

@@ -192,6 +192,51 @@
   font-style: italic;
 }
 
+/* Project indicator in header */
+.opencode-project-indicator {
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  transition: opacity 0.15s ease;
+}
+
+.opencode-project-indicator:hover {
+  opacity: 0.85;
+}
+
+/* Project picker modal */
+.opencode-project-suggestion {
+  padding: 4px 0;
+}
+
+.opencode-project-name {
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.opencode-project-active-badge {
+  font-weight: 400;
+  font-size: 0.8em;
+  color: var(--text-success);
+  margin-left: 6px;
+}
+
+.opencode-project-path {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Add project form in settings */
+.opencode-add-project {
+  margin-top: 8px;
+  padding: 8px 0;
+}
+
 /* Error details in settings */
 .opencode-error-details {
   margin-top: 12px;
