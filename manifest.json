@@ -1,9 +1,9 @@
 {
   "id": "opencode-obsidian",
   "name": "OpenCode-Obsidian",
-  "version": "0.0.0",
+  "version": "0.2.0-atigar.1",
   "minAppVersion": "1.4.0",
   "description": "Embed OpenCode AI assistant in Obsidian for AI-powered note management",
-  "author": "mtymek",
+  "author": "aTigar",
   "isDesktopOnly": true
 }
